@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV to XML Converter</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+</head>
+<body>
+  <input type="file" id="csvFileInput" accept=".csv">
+  <button onclick="handleFile()">Convert CSV to XML</button>
+
+  <script>
+    function convertCSVtoXML(csvString) {
+      return new Promise((resolve, reject) => {
+        Papa.parse(csvString, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          complete: (result) => {
+            const xmlString = parseJSONtoXML(result.data);
+            resolve(xmlString);
+          },
+          error: (error) => {
+            reject(error.message);
+          }
+        });
+      });
+    }
+
+    function parseJSONtoXML(jsonData) {
+      let xmlString = '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n';
+      
+      jsonData.forEach(item => {
+        xmlString += '  <row>\n';
+        Object.keys(item).forEach(key => {
+          xmlString += `    <${key}>${item[key]}</${key}>\n`;
+        });
+        xmlString += '  </row>\n';
+      });
+
+      xmlString += '</root>';
+      return xmlString;
+    }
+
+    function downloadXMLFile(xmlString) {
+      const xmlBlob = new Blob([xmlString], { type: 'application/xml' });
+      const downloadLink = document.createElement('a');
+      downloadLink.href = URL.createObjectURL(xmlBlob);
+      downloadLink.download = 'converted_data.xml';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+
+    function handleFile() {
+      const input = document.getElementById('csvFileInput');
+      const file = input.files[0];
+
+      if (file) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          const csvString = e.target.result;
+
+          convertCSVtoXML(csvString)
+            .then(xmlString => {
+              console.log("CSV to XML conversion successful:");
+              console.log(xmlString);
+
+              downloadXMLFile(xmlString);
+            })
+            .catch(error => {
+              console.error("Error converting CSV to XML:", error);
+            });
+        };
+
+        reader.readAsText(file);
+      } else {
+        console.error("No file selected");
+      }
+    }
+  </script>
+</body>
+</html>
